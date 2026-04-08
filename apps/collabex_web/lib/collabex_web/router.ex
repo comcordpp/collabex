@@ -1,0 +1,15 @@
+defmodule CollabExWeb.Router do
+  use Phoenix.Router
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  scope "/api", CollabExWeb do
+    pipe_through :api
+
+    get "/rooms", RoomController, :index
+    get "/rooms/:room_id", RoomController, :show
+    delete "/rooms/:room_id", RoomController, :delete
+  end
+end
