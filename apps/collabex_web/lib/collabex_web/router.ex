@@ -10,6 +10,7 @@ defmodule CollabExWeb.Router do
 
     get "/rooms", RoomController, :index
     get "/rooms/:room_id", RoomController, :show
+    get "/rooms/:room_id/presence", RoomController, :presence
     delete "/rooms/:room_id", RoomController, :delete
   end
 end

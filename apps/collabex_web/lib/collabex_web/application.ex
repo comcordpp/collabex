@@ -7,6 +7,7 @@ defmodule CollabExWeb.Application do
   def start(_type, _args) do
     children = [
       {Phoenix.PubSub, name: CollabExWeb.PubSub},
+      CollabExWeb.Presence,
       CollabExWeb.Endpoint
     ]
 

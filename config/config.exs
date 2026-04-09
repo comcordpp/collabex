@@ -29,3 +29,8 @@ config :logger, :console,
 #       # {CollabEx.Auth.Middleware.Custom, auth_fn: &MyApp.Auth.check/2}
 #     ]
 config :collabex, CollabEx.Auth, pipeline: []
+
+# CollabEx Presence — configurable disconnect cleanup timeout.
+# Default: 30 seconds. After this period with no heartbeat, the user
+# is removed from the room's presence list.
+config :collabex_web, CollabExWeb.Presence, disconnect_timeout: 30_000
