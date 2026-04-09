@@ -52,6 +52,11 @@ defmodule CollabEx.Room.Server do
     GenServer.call(via(room_id), {:apply_update, update, client_id})
   end
 
+  @doc "Replace the entire document state (for REST API import)."
+  def set_state(room_id, new_state) do
+    GenServer.call(via(room_id), {:set_state, new_state})
+  end
+
   @doc "Register a client connection with optional auth context."
   def join(room_id, client_id, client_pid, auth_context \\ %{}) do
     GenServer.call(via(room_id), {:join, client_id, client_pid, auth_context})
@@ -112,6 +117,19 @@ defmodule CollabEx.Room.Server do
   @impl true
   def handle_call(:get_state, _from, state) do
     {:reply, {:ok, state.document_state}, state, timeout_for(state)}
+  end
+
+  @impl true
+  def handle_call({:set_state, new_doc_state}, _from, state) do
+    new_state = %{state | document_state: new_doc_state, last_activity_at: DateTime.utc_now()}
+    persist_state(new_state)
+
+    # Broadcast full state to all connected clients
+    Enum.each(state.clients, fn {_client_id, %{pid: pid}} ->
+      send(pid, {:yjs_update, state.room_id, new_doc_state})
+    end)
+
+    {:reply, :ok, new_state, timeout_for(new_state)}
   end
 
   @impl true

@@ -34,3 +34,10 @@ config :collabex, CollabEx.Auth, pipeline: []
 # Default: 30 seconds. After this period with no heartbeat, the user
 # is removed from the room's presence list.
 config :collabex_web, CollabExWeb.Presence, disconnect_timeout: 30_000
+
+# REST API key authentication for server-to-server calls.
+# Empty list = no auth required (development mode).
+# In production, set via runtime config:
+#   config :collabex_web, CollabExWeb.Plugs.ApiKeyAuth,
+#     api_keys: [System.fetch_env!("COLLABEX_API_KEY")]
+config :collabex_web, CollabExWeb.Plugs.ApiKeyAuth, api_keys: []
