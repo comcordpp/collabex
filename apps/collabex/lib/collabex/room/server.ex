@@ -49,9 +49,9 @@ defmodule CollabEx.Room.Server do
     GenServer.call(via(room_id), {:apply_update, update, client_id})
   end
 
-  @doc "Register a client connection."
-  def join(room_id, client_id, client_pid) do
-    GenServer.call(via(room_id), {:join, client_id, client_pid})
+  @doc "Register a client connection with optional auth context."
+  def join(room_id, client_id, client_pid, auth_context \\ %{}) do
+    GenServer.call(via(room_id), {:join, client_id, client_pid, auth_context})
   end
 
   @doc "Unregister a client connection."
@@ -62,6 +62,11 @@ defmodule CollabEx.Room.Server do
   @doc "Get connected client count."
   def client_count(room_id) do
     GenServer.call(via(room_id), :client_count)
+  end
+
+  @doc "Get auth context for a specific client."
+  def get_client_auth(room_id, client_id) do
+    GenServer.call(via(room_id), {:get_client_auth, client_id})
   end
 
   @doc "Get room info for debugging/monitoring."
@@ -121,15 +126,35 @@ defmodule CollabEx.Room.Server do
   end
 
   @impl true
-  def handle_call({:join, client_id, client_pid}, _from, state) do
+  def handle_call({:join, client_id, client_pid, auth_context}, _from, state) do
     # Monitor the client process for automatic cleanup on disconnect
     ref = Process.monitor(client_pid)
-    new_clients = Map.put(state.clients, client_id, %{pid: client_pid, ref: ref})
+
+    new_clients =
+      Map.put(state.clients, client_id, %{
+        pid: client_pid,
+        ref: ref,
+        user_id: Map.get(auth_context, :user_id),
+        permissions: Map.get(auth_context, :permissions, []),
+        auth_context: auth_context
+      })
+
     new_state = %{state | clients: new_clients, last_activity_at: DateTime.utc_now()}
 
     Logger.debug("Client #{client_id} joined room #{state.room_id} (#{map_size(new_clients)} clients)")
 
     {:reply, {:ok, state.document_state}, new_state, timeout_for(new_state)}
+  end
+
+  @impl true
+  def handle_call({:get_client_auth, client_id}, _from, state) do
+    result =
+      case Map.get(state.clients, client_id) do
+        %{auth_context: auth_context} -> {:ok, auth_context}
+        nil -> {:error, :not_found}
+      end
+
+    {:reply, result, state, timeout_for(state)}
   end
 
   @impl true

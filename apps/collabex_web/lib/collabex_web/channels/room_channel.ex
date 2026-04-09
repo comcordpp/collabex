@@ -36,12 +36,13 @@ defmodule CollabExWeb.RoomChannel do
   @impl true
   def join("room:" <> room_id, _params, socket) do
     client_id = socket.assigns.client_id
+    auth_context = socket.assigns[:auth_context] || %{}
 
     # Ensure room process exists
     case Manager.get_or_create_room(room_id) do
       {:ok, _pid} ->
-        # Register this channel process as a client
-        {:ok, doc_state} = Server.join(room_id, client_id, self())
+        # Register this channel process as a client with auth context
+        {:ok, doc_state} = Server.join(room_id, client_id, self(), auth_context)
 
         socket =
           socket

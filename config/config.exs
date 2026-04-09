@@ -16,3 +16,16 @@ config :phoenix, :json_library, Jason
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
+
+# CollabEx Auth Pipeline — empty by default (all connections allowed).
+# Configure middleware to require authentication:
+#
+#   config :collabex, CollabEx.Auth,
+#     pipeline: [
+#       {CollabEx.Auth.Middleware.JWT, secret: "your-secret", issuer: "your-app"},
+#       # Or token-based:
+#       # {CollabEx.Auth.Middleware.Token, lookup: &MyApp.Tokens.validate/1},
+#       # Or custom function:
+#       # {CollabEx.Auth.Middleware.Custom, auth_fn: &MyApp.Auth.check/2}
+#     ]
+config :collabex, CollabEx.Auth, pipeline: []
