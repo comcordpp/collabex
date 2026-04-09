@@ -1,0 +1,182 @@
+{
+  "annotations": { "list": [] },
+  "description": "CollabEx Real-Time Collaboration Server Metrics",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Active Rooms",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "collabex_room_created_total - collabex_room_terminated_total",
+          "legendFormat": "rooms"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Active Connections",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "collabex_client_connected_total - collabex_client_disconnected_total",
+          "legendFormat": "connections"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 2000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Rooms Created / Terminated (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(collabex_room_created_total[5m])",
+          "legendFormat": "created/s"
+        },
+        {
+          "expr": "rate(collabex_room_terminated_total[5m])",
+          "legendFormat": "terminated/s"
+        }
+      ]
+    },
+    {
+      "title": "Client Connections / Disconnections (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(collabex_client_connected_total[5m])",
+          "legendFormat": "connected/s"
+        },
+        {
+          "expr": "rate(collabex_client_disconnected_total[5m])",
+          "legendFormat": "disconnected/s"
+        }
+      ]
+    },
+    {
+      "title": "Sync Message Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, rate(collabex_sync_duration_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(collabex_sync_duration_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(collabex_sync_duration_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "title": "Persistence Write Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, rate(collabex_document_persist_duration_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(collabex_document_persist_duration_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(collabex_document_persist_duration_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "title": "Sync Messages Processed (rate by type)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "rate(collabex_sync_message_processed_total[5m])",
+          "legendFormat": "{{ message_type }}"
+        }
+      ]
+    },
+    {
+      "title": "Document Persist / Load Operations (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "rate(collabex_document_persisted_total[5m])",
+          "legendFormat": "persisted/s"
+        },
+        {
+          "expr": "rate(collabex_document_loaded_total[5m])",
+          "legendFormat": "loaded/s"
+        }
+      ]
+    },
+    {
+      "title": "Memory per Room (bytes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "collabex_room_memory_bytes",
+          "legendFormat": "{{ room_id }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["collabex", "collaboration", "elixir"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "CollabEx Monitoring",
+  "uid": "collabex-monitoring",
+  "version": 1
+}

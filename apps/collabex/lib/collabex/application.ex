@@ -9,7 +9,9 @@ defmodule CollabEx.Application do
       # Room name → PID registry
       {Registry, keys: :unique, name: CollabEx.RoomRegistry},
       # Dynamic supervisor for room processes
-      {DynamicSupervisor, strategy: :one_for_one, name: CollabEx.RoomSupervisor}
+      {DynamicSupervisor, strategy: :one_for_one, name: CollabEx.RoomSupervisor},
+      # Prometheus metrics exporter
+      {TelemetryMetricsPrometheus.Core, metrics: CollabEx.Telemetry.metrics()}
     ]
 
     opts = [strategy: :one_for_one, name: CollabEx.Supervisor]

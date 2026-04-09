@@ -13,4 +13,8 @@ defmodule CollabExWeb.Router do
     get "/rooms/:room_id/presence", RoomController, :presence
     delete "/rooms/:room_id", RoomController, :delete
   end
+
+  scope "/metrics" do
+    get "/", CollabExWeb.MetricsController, :index
+  end
 end

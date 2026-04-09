@@ -26,7 +26,10 @@ defmodule CollabEx.MixProject do
     [
       {:jason, "~> 1.4"},
       {:ecto_sql, "~> 3.12"},
-      {:postgrex, ">= 0.0.0"}
+      {:postgrex, ">= 0.0.0"},
+      {:telemetry, "~> 1.2"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_metrics_prometheus, "~> 1.1"}
     ]
   end
 end

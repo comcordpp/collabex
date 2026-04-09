@@ -8,8 +8,11 @@ defmodule CollabEx.Room.Server do
   - Hibernates after configurable idle timeout (default 5 min)
   - Terminates after configurable empty timeout (default 30 min with no clients)
   - Recovers state from persistence adapter on restart
+  - Emits telemetry events for monitoring
   """
   use GenServer, restart: :transient
+
+  alias CollabEx.Telemetry, as: Tel
 
   require Logger
 
@@ -100,6 +103,7 @@ defmodule CollabEx.Room.Server do
     }
 
     Logger.info("Room #{room_id} started")
+    Tel.room_created(room_id)
 
     # Start with empty timeout since no clients are connected yet
     {:ok, state, empty_timeout}
@@ -112,6 +116,8 @@ defmodule CollabEx.Room.Server do
 
   @impl true
   def handle_call({:apply_update, update, client_id}, _from, state) do
+    start_time = System.monotonic_time()
+
     # Merge update into document state
     new_doc_state = merge_update(state.document_state, update)
     new_state = %{state | document_state: new_doc_state, last_activity_at: DateTime.utc_now()}
@@ -121,6 +127,9 @@ defmodule CollabEx.Room.Server do
 
     # Broadcast update to other clients
     broadcast(state.clients, client_id, {:yjs_update, state.room_id, update})
+
+    duration = System.monotonic_time() - start_time
+    Tel.sync_message_processed(state.room_id, :update, duration)
 
     {:reply, :ok, new_state, timeout_for(new_state)}
   end
@@ -142,6 +151,7 @@ defmodule CollabEx.Room.Server do
     new_state = %{state | clients: new_clients, last_activity_at: DateTime.utc_now()}
 
     Logger.debug("Client #{client_id} joined room #{state.room_id} (#{map_size(new_clients)} clients)")
+    Tel.client_connected(state.room_id, client_id, map_size(new_clients))
 
     {:reply, {:ok, state.document_state}, new_state, timeout_for(new_state)}
   end
@@ -164,10 +174,13 @@ defmodule CollabEx.Room.Server do
 
   @impl true
   def handle_call(:info, _from, state) do
+    doc_bytes = byte_size(state.document_state || <<>>)
+    Tel.room_memory(state.room_id, doc_bytes)
+
     info = %{
       room_id: state.room_id,
       client_count: map_size(state.clients),
-      document_size: byte_size(state.document_state || <<>>),
+      document_size: doc_bytes,
       created_at: state.created_at,
       last_activity_at: state.last_activity_at
     }
@@ -219,6 +232,7 @@ defmodule CollabEx.Room.Server do
   def terminate(reason, state) do
     Logger.info("Room #{state.room_id} terminating: #{inspect(reason)}")
     persist_state(state)
+    Tel.room_terminated(state.room_id, reason)
     :ok
   end
 
@@ -229,6 +243,7 @@ defmodule CollabEx.Room.Server do
       {%{ref: ref}, new_clients} ->
         Process.demonitor(ref, [:flush])
         Logger.debug("Client #{client_id} left room #{state.room_id} (#{map_size(new_clients)} clients)")
+        Tel.client_disconnected(state.room_id, client_id, map_size(new_clients))
         %{state | clients: new_clients}
 
       {nil, _} ->
@@ -248,8 +263,13 @@ defmodule CollabEx.Room.Server do
 
   defp recover_state(room_id, adapter) do
     case adapter.load(room_id) do
-      {:ok, state} -> state
-      {:error, :not_found} -> nil
+      {:ok, state} ->
+        Tel.document_loaded(room_id)
+        state
+
+      {:error, :not_found} ->
+        nil
+
       {:error, reason} ->
         Logger.warning("Failed to recover room #{room_id}: #{inspect(reason)}")
         nil
@@ -260,8 +280,16 @@ defmodule CollabEx.Room.Server do
 
   defp persist_state(%{persistence_adapter: adapter, room_id: room_id, document_state: doc_state})
        when not is_nil(doc_state) do
-    case adapter.save(room_id, doc_state) do
-      :ok -> :ok
+    {result, duration} =
+      Tel.span(fn ->
+        adapter.save(room_id, doc_state)
+      end)
+
+    case result do
+      :ok ->
+        Tel.document_persisted(room_id, duration)
+        :ok
+
       {:error, reason} ->
         Logger.warning("Failed to persist room #{room_id}: #{inspect(reason)}")
         :ok
